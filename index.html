@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
+<title>Daily Habits</title>
+
+<!-- iPhone / home-screen web-app meta -->
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Habits" />
+<meta name="theme-color" content="#0b0f1a" />
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Crect width='180' height='180' rx='40' fill='%230b0f1a'/%3E%3Ctext x='90' y='125' font-size='110' text-anchor='middle'%3E%E2%9C%85%3C/text%3E%3C/svg%3E" />
+
+<!-- Inline manifest so the whole app stays in one file -->
+<link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22Daily%20Habits%22%2C%22short_name%22%3A%22Habits%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%230b0f1a%22%2C%22theme_color%22%3A%22%230b0f1a%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22data%3Aimage%2Fsvg%2Bxml%2C%253Csvg%2520xmlns%253D%2527http%253A%252F%252Fwww.w3.org%252F2000%252Fsvg%2527%2520width%253D%2527192%2527%2520height%253D%2527192%2527%253E%253Crect%2520width%253D%2527192%2527%2520height%253D%2527192%2527%2520rx%253D%252742%2527%2520fill%253D%2527%25230b0f1a%2527%252F%253E%253Ctext%2520x%253D%252796%2527%2520y%253D%2527135%2527%2520font-size%253D%2527118%2527%2520text-anchor%253D%2527middle%2527%253E%25E2%259C%2585%253C%252Ftext%253E%253C%252Fsvg%253E%22%2C%22sizes%22%3A%22192x192%22%2C%22type%22%3A%22image%2Fsvg%2Bxml%22%7D%5D%7D" />
+
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  :root {
+    --bg: #0b0f1a;
+    --card: #161c2c;
+    --card-done: #13351f;
+    --accent: #34d399;
+    --accent2: #22d3ee;
+    --text: #f1f5f9;
+    --muted: #7c89a3;
+    --danger: #f87171;
+  }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    background: radial-gradient(130% 100% at 50% 0%, #121a2e 0%, var(--bg) 60%);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro", "Segoe UI", system-ui, sans-serif;
+    display: flex; flex-direction: column;
+    height: 100vh; height: 100dvh;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    user-select: none; -webkit-user-select: none;
+  }
+
+  header { padding: 14px 18px 8px; flex: 0 0 auto; }
+  .top-row { display: flex; align-items: baseline; justify-content: space-between; }
+  h1 { font-size: 22px; font-weight: 800; letter-spacing: -0.4px; }
+  .date { font-size: 13px; color: var(--muted); font-weight: 600; }
+
+  .progress-wrap { margin-top: 12px; }
+  .progress-meta { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-bottom: 6px; font-weight: 600; }
+  .progress-meta b { color: var(--accent); }
+  .bar { height: 10px; background: #1f273b; border-radius: 99px; overflow: hidden; }
+  .bar > span {
+    display: block; height: 100%; width: 0%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 99px; transition: width .5s cubic-bezier(.22,1,.36,1);
+  }
+
+  main { flex: 1 1 auto; overflow: hidden; display: flex; flex-direction: column; gap: 8px; padding: 10px 14px; }
+
+  .habit {
+    position: relative; flex: 1 1 0; min-height: 0;
+    display: flex; align-items: center; gap: 14px;
+    background: var(--card); border-radius: 18px; padding: 0 16px;
+    border: 1px solid rgba(255,255,255,.04);
+    transition: transform .18s, background .35s, border-color .35s;
+    overflow: hidden;
+  }
+  .habit.done { background: var(--card-done); border-color: rgba(52,211,153,.35); }
+  .habit.bounce { animation: bounce .4s cubic-bezier(.3,1.5,.5,1); }
+  @keyframes bounce { 0%{transform:scale(1)} 40%{transform:scale(1.035)} 100%{transform:scale(1)} }
+
+  .check {
+    flex: 0 0 auto; width: 40px; height: 40px; border-radius: 50%;
+    border: 2.5px solid #3a455f; display: grid; place-items: center;
+    font-size: 22px; color: transparent; transition: all .25s;
+  }
+  .habit.done .check { background: var(--accent); border-color: var(--accent); color: #06281a; transform: scale(1); }
+  .habit.done .check svg { animation: pop .35s cubic-bezier(.2,1.6,.4,1); }
+  @keyframes pop { 0%{transform:scale(0) rotate(-25deg)} 100%{transform:scale(1) rotate(0)} }
+
+  .info { flex: 1 1 auto; min-width: 0; }
+  .name { font-size: clamp(15px, 4.4vw, 19px); font-weight: 700; letter-spacing: -0.2px;
+          white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .habit.done .name { color: #cdeedd; }
+  .streak { font-size: 12.5px; color: var(--muted); font-weight: 600; margin-top: 2px; }
+  .streak .flame { color: #fb923c; }
+  .streak.hot b { color: #fdba74; }
+
+  .edit-btn {
+    flex: 0 0 auto; width: 34px; height: 34px; border-radius: 10px;
+    background: rgba(255,255,255,.05); border: none; color: var(--muted);
+    font-size: 16px; display: grid; place-items: center;
+  }
+  .emoji { flex: 0 0 auto; font-size: 26px; width: 30px; text-align: center; }
+
+  footer { flex: 0 0 auto; padding: 8px 14px calc(8px + env(safe-area-inset-bottom)); }
+  .add-btn {
+    width: 100%; height: 52px; border-radius: 16px; border: none;
+    background: linear-gradient(90deg, var(--accent), var(--accent2)); color: #06281a;
+    font-size: 17px; font-weight: 800; letter-spacing: -0.2px;
+  }
+  .add-btn:active { transform: scale(.98); }
+
+  /* Confetti */
+  #confetti { position: fixed; inset: 0; pointer-events: none; z-index: 50; overflow: hidden; }
+  .conf { position: absolute; width: 9px; height: 14px; border-radius: 2px; will-change: transform, opacity; }
+
+  /* Modal */
+  .modal-bg {
+    position: fixed; inset: 0; background: rgba(3,6,14,.72); backdrop-filter: blur(6px);
+    display: none; align-items: flex-end; z-index: 100;
+  }
+  .modal-bg.show { display: flex; }
+  .sheet {
+    width: 100%; background: #141a28; border-radius: 24px 24px 0 0; padding: 22px 20px calc(22px + env(safe-area-inset-bottom));
+    border-top: 1px solid rgba(255,255,255,.08); animation: slideUp .3s cubic-bezier(.2,.9,.3,1);
+  }
+  @keyframes slideUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
+  .sheet h2 { font-size: 18px; margin-bottom: 16px; }
+  .field { display: flex; gap: 10px; margin-bottom: 14px; }
+  .field input[type=text] {
+    flex: 1; height: 50px; background: #0e1420; border: 1px solid #2a3348; border-radius: 13px;
+    color: var(--text); font-size: 16px; padding: 0 14px; -webkit-appearance: none;
+  }
+  .field input.emoji-in { width: 60px; flex: 0 0 60px; text-align: center; font-size: 24px; }
+  .sheet-actions { display: flex; gap: 10px; margin-top: 4px; }
+  .sheet-actions button { flex: 1; height: 50px; border-radius: 13px; border: none; font-size: 16px; font-weight: 700; }
+  .btn-save { background: var(--accent); color: #06281a; }
+  .btn-cancel { background: rgba(255,255,255,.07); color: var(--text); }
+  .btn-del { background: rgba(248,113,113,.15); color: var(--danger); margin-top: 10px; width: 100%; height: 46px; border-radius: 13px; border: none; font-weight: 700; font-size: 15px; }
+
+  .empty { flex: 1; display: grid; place-items: center; text-align: center; color: var(--muted); padding: 20px; }
+  .empty p { font-size: 15px; line-height: 1.5; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="top-row">
+    <h1>Daily Habits</h1>
+    <div class="date" id="date"></div>
+  </div>
+  <div class="progress-wrap">
+    <div class="progress-meta"><span id="progressLabel">0 of 0 done</span><b id="progressPct">0%</b></div>
+    <div class="bar"><span id="barFill"></span></div>
+  </div>
+</header>
+
+<main id="list"></main>
+
+<footer>
+  <button class="add-btn" id="addBtn">+ Add Habit</button>
+</footer>
+
+<div id="confetti"></div>
+
+<!-- Add / edit sheet -->
+<div class="modal-bg" id="modal">
+  <div class="sheet">
+    <h2 id="sheetTitle">New Habit</h2>
+    <div class="field">
+      <input type="text" class="emoji-in" id="emojiIn" maxlength="2" placeholder="✅" />
+      <input type="text" id="nameIn" placeholder="Habit name" autocomplete="off" />
+    </div>
+    <div class="sheet-actions">
+      <button class="btn-cancel" id="cancelBtn">Cancel</button>
+      <button class="btn-save" id="saveBtn">Save</button>
+    </div>
+    <button class="btn-del" id="delBtn" style="display:none">Delete habit</button>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  const KEY = "dailyHabits.v1";
+  const EMOJIS = ["💪","🧘","📚","💧","🏃","🥗","😴","🧠","✍️","🎸","☀️","🙏"];
+
+  // ---------- date helpers ----------
+  const dayStr = (d) => {
+    const x = d || new Date();
+    return x.getFullYear() + "-" + String(x.getMonth()+1).padStart(2,"0") + "-" + String(x.getDate()).padStart(2,"0");
+  };
+  const yesterdayStr = (fromStr) => {
+    const [y,m,d] = fromStr.split("-").map(Number);
+    const dt = new Date(y, m-1, d);
+    dt.setDate(dt.getDate() - 1);
+    return dayStr(dt);
+  };
+
+  // ---------- state ----------
+  let state = load();
+
+  function load() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(KEY));
+      if (raw && Array.isArray(raw.habits)) return raw;
+    } catch (e) {}
+    return {
+      lastDay: dayStr(),
+      habits: [
+        { id: id(), emoji: "💧", name: "Drink water",  streak: 0, lastCompleted: "" },
+        { id: id(), emoji: "💪", name: "Workout",      streak: 0, lastCompleted: "" },
+        { id: id(), emoji: "📚", name: "Read",         streak: 0, lastCompleted: "" },
+        { id: id(), emoji: "🧘", name: "Meditate",     streak: 0, lastCompleted: "" }
+      ]
+    };
+  }
+  function save() { localStorage.setItem(KEY, JSON.stringify(state)); }
+  function id() { return Math.random().toString(36).slice(2, 9); }
+
+  // ---------- midnight rollover ----------
+  // Keeps streak history: a streak survives only if the habit was completed
+  // yesterday (or today). Otherwise it's broken and reset to 0. Checkmarks
+  // (done state) are derived from lastCompleted === today, so a new day
+  // automatically shows everything unchecked.
+  function rollover() {
+    const today = dayStr();
+    if (state.lastDay === today) return false;
+    const yday = yesterdayStr(today);
+    state.habits.forEach(h => {
+      if (h.lastCompleted !== yday && h.lastCompleted !== today) h.streak = 0;
+    });
+    state.lastDay = today;
+    save();
+    return true;
+  }
+
+  const isDone = (h) => h.lastCompleted === dayStr();
+
+  // ---------- rendering ----------
+  const listEl = document.getElementById("list");
+  const barFill = document.getElementById("barFill");
+
+  function render() {
+    document.getElementById("date").textContent =
+      new Date().toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" });
+
+    listEl.innerHTML = "";
+
+    if (state.habits.length === 0) {
+      const e = document.createElement("div");
+      e.className = "empty";
+      e.innerHTML = "<p>No habits yet.<br>Tap <b>+ Add Habit</b> to start building your day. 🌱</p>";
+      listEl.appendChild(e);
+      updateProgress();
+      return;
+    }
+
+    state.habits.forEach(h => {
+      const done = isDone(h);
+      const row = document.createElement("div");
+      row.className = "habit" + (done ? " done" : "");
+      row.dataset.id = h.id;
+
+      const hot = h.streak >= 3;
+      row.innerHTML =
+        '<div class="emoji">' + (h.emoji || "✅") + '</div>' +
+        '<div class="check">' +
+          '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' +
+        '</div>' +
+        '<div class="info">' +
+          '<div class="name"></div>' +
+          '<div class="streak' + (hot ? " hot" : "") + '">' +
+            (h.streak > 0 ? '<span class="flame">🔥</span> <b>' + h.streak + '</b> day' + (h.streak===1?"":"s") + ' streak'
+                          : 'Start your streak today') +
+          '</div>' +
+        '</div>' +
+        '<button class="edit-btn" aria-label="Edit">✎</button>';
+
+      row.querySelector(".name").textContent = h.name;
+
+      // tap row = toggle; tap edit = open sheet
+      row.addEventListener("click", (ev) => {
+        if (ev.target.closest(".edit-btn")) { openSheet(h); return; }
+        toggle(h, row);
+      });
+
+      listEl.appendChild(row);
+    });
+
+    updateProgress();
+  }
+
+  function updateProgress() {
+    const total = state.habits.length;
+    const done = state.habits.filter(isDone).length;
+    const pct = total ? Math.round((done/total)*100) : 0;
+    barFill.style.width = pct + "%";
+    document.getElementById("progressLabel").textContent = done + " of " + total + " done";
+    document.getElementById("progressPct").textContent = pct + "%";
+  }
+
+  // ---------- toggle + reward ----------
+  function toggle(h, row) {
+    const today = dayStr();
+    if (isDone(h)) {
+      // uncheck — revert today's increment
+      h.streak = Math.max(0, h.streak - 1);
+      h.lastCompleted = "";
+    } else {
+      h.streak += 1;
+      h.lastCompleted = today;
+      reward(row);
+    }
+    save();
+    render();
+  }
+
+  function reward(row) {
+    buzz();
+    row.classList.add("bounce");
+    const r = row.getBoundingClientRect();
+    confettiBurst(r.left + 30, r.top + r.height/2);
+    setTimeout(() => row.classList.remove("bounce"), 400);
+  }
+
+  function buzz() {
+    if (navigator.vibrate) navigator.vibrate([12, 30, 12]);
+  }
+
+  // ---------- confetti ----------
+  const confRoot = document.getElementById("confetti");
+  const COLORS = ["#34d399","#22d3ee","#fbbf24","#f472b6","#a78bfa","#f87171"];
+  function confettiBurst(x, y) {
+    for (let i = 0; i < 26; i++) {
+      const p = document.createElement("div");
+      p.className = "conf";
+      p.style.left = x + "px";
+      p.style.top = y + "px";
+      p.style.background = COLORS[(Math.random()*COLORS.length)|0];
+      confRoot.appendChild(p);
+
+      const ang = (Math.random() * Math.PI) - Math.PI/2;         // spray up/out
+      const dist = 70 + Math.random()*120;
+      const dx = Math.cos(ang) * dist + (Math.random()*60 - 30);
+      const dy = Math.sin(ang) * dist - (40 + Math.random()*80); // bias upward
+      const rot = (Math.random()*720 - 360);
+
+      p.animate([
+        { transform: "translate(0,0) rotate(0deg)", opacity: 1 },
+        { transform: "translate(" + dx + "px," + (dy+140) + "px) rotate(" + rot + "deg)", opacity: 0 }
+      ], { duration: 750 + Math.random()*350, easing: "cubic-bezier(.2,.7,.3,1)" })
+       .onfinish = () => p.remove();
+    }
+  }
+
+  // ---------- add / edit sheet ----------
+  const modal = document.getElementById("modal");
+  const nameIn = document.getElementById("nameIn");
+  const emojiIn = document.getElementById("emojiIn");
+  const delBtn = document.getElementById("delBtn");
+  let editing = null;
+
+  function openSheet(habit) {
+    editing = habit || null;
+    document.getElementById("sheetTitle").textContent = habit ? "Edit Habit" : "New Habit";
+    nameIn.value = habit ? habit.name : "";
+    emojiIn.value = habit ? (habit.emoji || "") : EMOJIS[(Math.random()*EMOJIS.length)|0];
+    delBtn.style.display = habit ? "block" : "none";
+    modal.classList.add("show");
+    setTimeout(() => nameIn.focus(), 150);
+  }
+  function closeSheet() { modal.classList.remove("show"); editing = null; }
+
+  document.getElementById("addBtn").addEventListener("click", () => openSheet(null));
+  document.getElementById("cancelBtn").addEventListener("click", closeSheet);
+  modal.addEventListener("click", (e) => { if (e.target === modal) closeSheet(); });
+
+  document.getElementById("saveBtn").addEventListener("click", () => {
+    const name = nameIn.value.trim();
+    if (!name) { nameIn.focus(); return; }
+    const emoji = emojiIn.value.trim() || "✅";
+    if (editing) {
+      editing.name = name; editing.emoji = emoji;
+    } else {
+      state.habits.push({ id: id(), emoji, name, streak: 0, lastCompleted: "" });
+    }
+    save(); closeSheet(); render();
+  });
+
+  delBtn.addEventListener("click", () => {
+    if (!editing) return;
+    state.habits = state.habits.filter(h => h.id !== editing.id);
+    save(); closeSheet(); render();
+  });
+
+  // ---------- boot + keep watching for midnight ----------
+  rollover();
+  render();
+
+  // check every 30s so the board resets itself at midnight while open,
+  // and whenever the app returns to the foreground on the phone.
+  setInterval(() => { if (rollover()) render(); }, 30000);
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden && rollover()) render();
+  });
+})();
+</script>
+</body>
+</html>
